@@ -1,0 +1,24 @@
+From f007934385dc76b9299bd72cdef102fe979af93b Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Wed, 5 Sep 2018 21:07:42 -0700
+Subject: [PATCH] Drop -fno-stack-protector from the compiler flags
+
+---
+ compiler-rt/CMakeLists.txt | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git compiler-rt.orig/CMakeLists.txt compiler-rt/CMakeLists.txt
+index f26ae25..a6ac032 100644
+--- compiler-rt.orig/CMakeLists.txt
++++ b/compiler-rt/CMakeLists.txt
+@@ -271,7 +271,6 @@ if(NOT COMPILER_RT_DEBUG AND NOT APPLE)
+   append_list_if(COMPILER_RT_HAS_FOMIT_FRAME_POINTER_FLAG -fomit-frame-pointer SANITIZER_COMMON_CFLAGS)
+ endif()
+ append_list_if(COMPILER_RT_HAS_FUNWIND_TABLES_FLAG -funwind-tables SANITIZER_COMMON_CFLAGS)
+-append_list_if(COMPILER_RT_HAS_FNO_STACK_PROTECTOR_FLAG -fno-stack-protector SANITIZER_COMMON_CFLAGS)
+ append_list_if(COMPILER_RT_HAS_FNO_SANITIZE_SAFE_STACK_FLAG -fno-sanitize=safe-stack SANITIZER_COMMON_CFLAGS)
+ append_list_if(COMPILER_RT_HAS_FVISIBILITY_HIDDEN_FLAG -fvisibility=hidden SANITIZER_COMMON_CFLAGS)
+ if(NOT COMPILER_RT_HAS_FVISIBILITY_HIDDEN_FLAG)
+-- 
+1.8.3.1
+
