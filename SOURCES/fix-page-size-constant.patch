@@ -1,0 +1,15 @@
+diff -ruN compiler-rt-14.0.0.src.orig/lib/cfi/cfi.cpp compiler-rt-14.0.0.src/lib/cfi/cfi.cpp
+--- a/compiler-rt-14.0.0.src.orig/lib/cfi/cfi.cpp	2022-03-14 10:44:55.000000000 +0100
++++ b/compiler-rt-14.0.0.src/lib/cfi/cfi.cpp	2022-05-25 17:03:51.114415534 +0200
+@@ -51,7 +51,11 @@
+ 
+ namespace __cfi {
+ 
++#if defined(__aarch64__) || defined(__powerpc64__)
++#define kCfiShadowLimitsStorageSize 65536 // 1 page
++#else
+ #define kCfiShadowLimitsStorageSize 4096 // 1 page
++#endif
+ // Lets hope that the data segment is mapped with 4K pages.
+ // The pointer to the cfi shadow region is stored at the start of this page.
+ // The rest of the page is unused and re-mapped read-only.
