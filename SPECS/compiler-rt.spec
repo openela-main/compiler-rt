@@ -1,6 +1,10 @@
-%global compiler_rt_version 15.0.7
-#global rc_ver 2
+%global maj_ver 16
+%global min_ver 0
+%global patch_ver 6
+#global rc_ver 4
+%global compiler_rt_version %{maj_ver}.%{min_ver}.%{patch_ver}
 %global crt_srcdir compiler-rt-%{compiler_rt_version}%{?rc_ver:rc%{rc_ver}}.src
+%global cmake_srcdir cmake-%{compiler_rt_version}%{?rc_ver:rc%{rc_ver}}.src
 
 # see https://sourceware.org/bugzilla/show_bug.cgi?id=25271
 %global optflags %(echo %{optflags} -D_DEFAULT_SOURCE)
@@ -18,8 +22,8 @@ URL:		http://llvm.org
 Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compiler_rt_version}%{?rc_ver:-rc%{rc_ver}}/%{crt_srcdir}.tar.xz
 Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compiler_rt_version}%{?rc_ver:-rc%{rc_ver}}/%{crt_srcdir}.tar.xz.sig
 Source2:	release-keys.asc
-
-Patch0:		add-llvm-cmake-package.patch
+Source3:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compiler_rt_version}%{?rc_ver:-rc%{rc_ver}}/%{cmake_srcdir}.tar.xz
+Source4:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compiler_rt_version}%{?rc_ver:-rc%{rc_ver}}/%{cmake_srcdir}.tar.xz.sig
 
 # RHEL-specific patches
 Patch100:	0001-Drop-fno-stack-protector-from-the-compiler-flags.patch
@@ -47,17 +51,27 @@ instrumentation, and Blocks C language extension.
 
 %prep
 %{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
+%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE4}' --data='%{SOURCE3}'
+%setup -T -q -b 3 -n %{cmake_srcdir}
+# TODO: It would be more elegant to set -DLLVM_COMMON_CMAKE_UTILS=%{_builddir}/%{cmake_srcdir},
+# but this is not a CACHED variable, so we can't actually set it externally :(
+cd ..
+mv %{cmake_srcdir} cmake
+
 %autosetup -n %{crt_srcdir} -p2
 
 %py3_shebang_fix lib/hwasan/scripts/hwasan_symbolize
 
 %build
+# Copy CFLAGS into ASMFLAGS, so -fcf-protection is used when compiling assembly files.
+export ASMFLAGS=$CFLAGS
 mkdir -p %{_vpath_builddir}
 cd %{_vpath_builddir}
 
 %cmake .. -GNinja \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	-DLLVM_CONFIG_PATH:FILEPATH=%{_bindir}/llvm-config-%{__isa_bits} \
+	-DCMAKE_MODULE_PATH=%{_libdir}/cmake/llvm \
+	-DCMAKE_SKIP_RPATH:BOOL=ON \
 	\
 %if 0%{?__isa_bits} == 64
 	-DLLVM_LIBDIR_SUFFIX=64 \
@@ -74,15 +88,15 @@ cd %{_vpath_builddir}
 %cmake_install
 
 # move blacklist/abilist files to where clang expect them
-mkdir -p %{buildroot}%{_libdir}/clang/%{compiler_rt_version}/share
-mv -v %{buildroot}%{_datadir}/*list.txt  %{buildroot}%{_libdir}/clang/%{compiler_rt_version}/share/
+mkdir -p %{buildroot}%{_libdir}/clang/%{maj_ver}/share
+mv -v %{buildroot}%{_datadir}/*list.txt  %{buildroot}%{_libdir}/clang/%{maj_ver}/share/
 
 # move sanitizer libs to better place
 %global libclang_rt_installdir lib/linux
-mkdir -p %{buildroot}%{_libdir}/clang/%{compiler_rt_version}/lib
-mv -v %{buildroot}%{_prefix}/%{libclang_rt_installdir}/*clang_rt* %{buildroot}%{_libdir}/clang/%{compiler_rt_version}/lib
-mkdir -p %{buildroot}%{_libdir}/clang/%{compiler_rt_version}/lib/linux/
-pushd %{buildroot}%{_libdir}/clang/%{compiler_rt_version}/lib
+mkdir -p %{buildroot}%{_libdir}/clang/%{maj_ver}/lib
+mv -v %{buildroot}%{_prefix}/%{libclang_rt_installdir}/*_rt* %{buildroot}%{_libdir}/clang/%{maj_ver}/lib
+mkdir -p %{buildroot}%{_libdir}/clang/%{maj_ver}/lib/linux/
+pushd %{buildroot}%{_libdir}/clang/%{maj_ver}/lib
 for i in *.a *.so
 do
 	ln -s ../$i linux/$i
@@ -92,11 +106,11 @@ done
 # the symlinks will be dangling if the 32 bits version is not installed, but that should be fine
 %ifarch x86_64
 
-mkdir -p %{buildroot}/%{_exec_prefix}/lib/clang/%{compiler_rt_version}/lib/linux
+mkdir -p %{buildroot}/%{_exec_prefix}/lib/clang/%{maj_ver}/lib/linux
 for i in *.a *.so
 do
 	target=`echo "$i" | sed -e 's/x86_64/i386/'`
-	ln -s ../../../../../lib/clang/%{compiler_rt_version}/lib/$target ../../../../%{_lib}/clang/%{compiler_rt_version}/lib/linux/
+	ln -s ../../../../../lib/clang/%{maj_ver}/lib/$target ../../../../%{_lib}/clang/%{maj_ver}/lib/linux/
 done
 
 %endif
@@ -110,13 +124,19 @@ popd
 %files
 %license LICENSE.TXT
 %{_includedir}/*
-%{_libdir}/clang/%{compiler_rt_version}/lib/*
-%{_libdir}/clang/%{compiler_rt_version}/share/*
+%{_libdir}/clang/%{maj_ver}/lib/*
+%{_libdir}/clang/%{maj_ver}/share/*
 %ifarch x86_64 aarch64
 %{_bindir}/hwasan_symbolize
 %endif
 
 %changelog
+* Fri Jun 23 2023 Tom Stellard <tstellar@redhat.com> - 16.0.6-1
+- 16.0.6 Release
+
+* Thu Apr 13 2023 Tom Stellard <tstellar@redhat.com> - 16.0.0-1
+- Update to LLVM 16.0.0
+
 * Thu Jan 19 2023 Tom Stellard <tstellar@redhat.com> - 15.0.7-1
 - Update to LLVM 15.0.7
 
