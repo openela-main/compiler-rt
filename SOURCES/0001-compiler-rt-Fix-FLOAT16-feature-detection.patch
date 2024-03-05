@@ -1,0 +1,36 @@
+From ce15f52198639e9195b8833ed60dc1a49c293956 Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Tue, 29 Aug 2023 15:49:55 -0700
+Subject: [PATCH] compiler-rt: Fix FLOAT16 feature detection
+
+CMAKE_TRY_COMPILE_TARGET_TYPE defaults to EXECUTABLE, which causes
+any feature detection code snippet without a main function to fail,
+so we need to make sure it gets explicitly set to STATIC_LIBRARY.
+---
+ compiler-rt/lib/builtins/CMakeLists.txt | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/compiler-rt/lib/builtins/CMakeLists.txt b/compiler-rt/lib/builtins/CMakeLists.txt
+index 2fc70522895f..e83a1ecea50b 100644
+--- a/compiler-rt/lib/builtins/CMakeLists.txt
++++ b/compiler-rt/lib/builtins/CMakeLists.txt
+@@ -12,7 +12,6 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+       "at least 3.20.0 now to avoid issues in the future!")
+   endif()
+ 
+-  set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+   project(CompilerRTBuiltins C ASM)
+   set(COMPILER_RT_STANDALONE_BUILD TRUE)
+   set(COMPILER_RT_BUILTINS_STANDALONE_BUILD TRUE)
+@@ -56,6 +55,8 @@ if (COMPILER_RT_STANDALONE_BUILD)
+     "Turns on or off -fPIC for the builtin library source"
+     ON)
+ endif()
++  
++set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+ 
+ include(builtin-config-ix)
+ include(CMakePushCheckState)
+-- 
+2.40.1
+

@@ -14,7 +14,7 @@
 
 Name:		compiler-rt
 Version:	%{compiler_rt_version}%{?rc_ver:~rc%{rc_ver}}
-Release:	1%{?dist}
+Release:	3%{?dist}
 Summary:	LLVM "compiler-rt" runtime libraries
 
 License:	NCSA or MIT
@@ -28,9 +28,9 @@ Source4:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compil
 # RHEL-specific patches
 Patch100:	0001-Drop-fno-stack-protector-from-the-compiler-flags.patch
 Patch101:	fix-page-size-constant.patch
+Patch102:	0001-compiler-rt-Fix-FLOAT16-feature-detection.patch
 
-BuildRequires:	gcc
-BuildRequires:	gcc-c++
+BuildRequires:	clang
 BuildRequires:	cmake
 BuildRequires:	ninja-build
 BuildRequires:	python3
@@ -72,6 +72,8 @@ cd %{_vpath_builddir}
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_MODULE_PATH=%{_libdir}/cmake/llvm \
 	-DCMAKE_SKIP_RPATH:BOOL=ON \
+	-DCMAKE_C_COMPILER=clang \
+	-DCMAKE_CXX_COMPILER=clang++ \
 	\
 %if 0%{?__isa_bits} == 64
 	-DLLVM_LIBDIR_SUFFIX=64 \
@@ -131,6 +133,12 @@ popd
 %endif
 
 %changelog
+* Fri Oct 13 2023 Nikita Popov <npopov@redhat.com> - 16.0.6-3
+- Build with clang
+
+* Tue Aug 29 2023 Tom Stellard <tstellar@redhat.com> - 16.0.6-2
+- Fix FLOAT16 detection
+
 * Fri Jun 23 2023 Tom Stellard <tstellar@redhat.com> - 16.0.6-1
 - 16.0.6 Release
 
