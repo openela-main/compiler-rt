@@ -16,7 +16,7 @@
 
 Name:		compiler-rt
 Version:	%{compiler_rt_version}
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	LLVM "compiler-rt" runtime libraries
 
 License:	Apache-2.0 WITH LLVM-exception OR NCSA OR MIT
@@ -26,6 +26,8 @@ Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compil
 Source2:	release-keys.asc
 Source3:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compiler_rt_version}%{?rc_ver:-rc%{rc_ver}}/%{cmake_srcdir}.tar.xz
 Source4:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{compiler_rt_version}%{?rc_ver:-rc%{rc_ver}}/%{cmake_srcdir}.tar.xz.sig
+
+Patch0:		0001-compiler-rt-Fix-FLOAT16-feature-detection.patch
 
 BuildRequires:	clang
 BuildRequires:	cmake
@@ -124,6 +126,9 @@ popd
 %endif
 
 %changelog
+* Tue Aug 29 2023 Tom Stellard <tstellar@redhat.com> - 16.0.6-2
+- Fix FLOAT16 detection
+
 * Wed Jul 05 2023 Nikita Popov <npopov@redhat.com> - 16.0.6-1
 - Update to LLVM 16.0.6
 
